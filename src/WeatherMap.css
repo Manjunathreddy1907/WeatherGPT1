@@ -1,0 +1,125 @@
+/* WeatherGPT Real Leaflet Map */
+
+.real-map-layout {
+  align-items: stretch;
+}
+
+.real-weather-map {
+  position: relative;
+  min-height: 560px;
+  overflow: hidden;
+  border-radius: 18px;
+  background:#e8eef3;
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 560px;
+  min-height: 560px;
+  z-index: 1;
+}
+
+.map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.map-loading-overlay .loading-spinner {
+  width: 34px;
+  height: 34px;
+  border: 4px solid rgba(0, 0, 0, 0.12);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: weatherMapSpin 0.8s linear infinite;
+}
+
+@keyframes weatherMapSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.map-error {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff4e5;
+  border: 1px solid #ffd49a;
+  font-size: 14px;
+}
+
+.weather-popup {
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: inherit;
+}
+
+.weather-popup strong {
+  font-size: 15px;
+}
+
+.weather-popup span {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.weather-popup b {
+  font-size: 17px;
+}
+
+.map-current-location-card {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.035);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.map-current-location-card span,
+.map-current-location-card small {
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+.map-current-location-card strong {
+  font-size: 15px;
+}
+
+.map-current-location-card button {
+  margin-top: 6px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.legend-help {
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.72;
+}
+
+.leaflet-container {
+  font: inherit;
+}
+
+@media (max-width: 900px) {
+  .real-weather-map,
+  .leaflet-map {
+    min-height: 420px;
+    height: 420px;
+  }
+}
