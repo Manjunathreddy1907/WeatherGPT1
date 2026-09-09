@@ -4901,6 +4901,131 @@ const Settings = () => {
   };
 
   /* ================================
+     FORECAST ACCURACY
+  ================================= */
+
+  const ForecastAccuracy = () => {
+    const metrics = accuracyData.metrics || {};
+
+    const metricCards = [
+      {
+        label: "Temperature Accuracy",
+        value: metrics.temperature,
+        icon: "🌡️",
+      },
+      {
+        label: "Humidity Accuracy",
+        value: metrics.humidity,
+        icon: "💧",
+      },
+      {
+        label: "Wind Accuracy",
+        value: metrics.wind,
+        icon: "💨",
+      },
+      {
+        label: "Rain Event Accuracy",
+        value: metrics.rain,
+        icon: "🌧️",
+      },
+    ];
+
+    const formatAccuracy = (value) =>
+      Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)}%` : "--";
+
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h1>🎯 Forecast Accuracy</h1>
+            <p>
+              Verified forecast performance using historical forecast runs and
+              corresponding weather observations.
+            </p>
+          </div>
+
+          <button
+            className="refresh-button"
+            onClick={fetchAccuracy}
+            disabled={accuracyData.loading}
+            type="button"
+          >
+            {accuracyData.loading ? "⏳ Checking..." : "🔄 Refresh"}
+          </button>
+        </div>
+
+        {accuracyData.error ? (
+          <div className="error-message">
+            ⚠️ {accuracyData.error}
+          </div>
+        ) : null}
+
+        <div className="accuracy-overall-card">
+          <div className="accuracy-overall-icon">🎯</div>
+          <div>
+            <div className="stat-label">Overall Forecast Accuracy</div>
+            <div className="accuracy-overall-value">
+              {accuracyData.loading
+                ? "..."
+                : formatAccuracy(accuracyData.overall)}
+            </div>
+            <div className="stat-description">
+              {accuracyData.verifiedSamples
+                ? `${accuracyData.verifiedSamples} verified hourly samples • ${accuracyData.leadTimeHours}-hour lead`
+                : "Waiting for verified forecast data"}
+            </div>
+          </div>
+        </div>
+
+        <div className="accuracy-grid">
+          {metricCards.map((item) => (
+            <div className="analytics-card" key={item.label}>
+              <div className="accuracy-card-icon">{item.icon}</div>
+              <h3>{item.label}</h3>
+              <div className="accuracy-value">
+                {accuracyData.loading ? "..." : formatAccuracy(item.value)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="analytics-card accuracy-method-card">
+          <h2>How is this calculated?</h2>
+          <p>
+            WeatherGPT compares archived forecasts made 24 hours before the
+            valid time with the corresponding historical weather values.
+            Temperature, humidity, and wind use normalized mean absolute error,
+            while rain accuracy measures correct rain/no-rain event prediction.
+          </p>
+
+          <div className="accuracy-details-grid">
+            <div>
+              <strong>Location</strong>
+              <span>{accuracyData.location || currentLocation}</span>
+            </div>
+            <div>
+              <strong>Lead Time</strong>
+              <span>{accuracyData.leadTimeHours} hours</span>
+            </div>
+            <div>
+              <strong>Verified Samples</strong>
+              <span>{accuracyData.verifiedSamples || 0}</span>
+            </div>
+            <div>
+              <strong>Verification Period</strong>
+              <span>
+                {accuracyData.period
+                  ? `${accuracyData.period.start} → ${accuracyData.period.end}`
+                  : "--"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ================================
      COMING SOON
   ================================= */
 
