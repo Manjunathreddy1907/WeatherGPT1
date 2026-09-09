@@ -3643,4 +3643,230 @@ button {
   .dashboard-refresh-action {
     width: 100%;
   }
+}/* =================================
+   FORECAST ACCURACY
+================================= */
+
+.accuracy-overall-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+  margin-bottom: 24px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    #eef6ff,
+    #f8fbff
+  );
+  border: 1px solid #d9e8f7;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.accuracy-overall-icon {
+  width: 76px;
+  height: 76px;
+  min-width: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 38px;
+  background: white;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.accuracy-overall-card .stat-label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #64748b;
+}
+
+.accuracy-overall-value {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.accuracy-overall-card .stat-description {
+  font-size: 14px;
+  color: #64748b;
+}
+
+
+/* =================================
+   ACCURACY METRIC CARDS
+================================= */
+
+.accuracy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.accuracy-grid .analytics-card {
+  min-height: 190px;
+  padding: 24px;
+  text-align: center;
+  border-radius: 18px;
+  transition: transform 0.2s ease,
+              box-shadow 0.2s ease;
+}
+
+.accuracy-grid .analytics-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.09);
+}
+
+.accuracy-card-icon {
+  font-size: 34px;
+  margin-bottom: 12px;
+}
+
+.accuracy-grid h3 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.accuracy-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f766e;
+}
+
+
+/* =================================
+   CALCULATION / METHODOLOGY
+================================= */
+
+.accuracy-method-card {
+  padding: 28px;
+  margin-bottom: 24px;
+  border-radius: 18px;
+}
+
+.accuracy-method-card h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.accuracy-method-card p {
+  margin: 0;
+  line-height: 1.7;
+  color: #64748b;
+  font-size: 15px;
+}
+
+
+/* =================================
+   ACCURACY DETAILS
+================================= */
+
+.accuracy-details-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.accuracy-details-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 18px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.accuracy-details-grid strong {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.accuracy-details-grid span {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+
+/* =================================
+   ERROR MESSAGE
+================================= */
+
+.error-message {
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #c2410c;
+  font-size: 14px;
+}
+
+
+/* =================================
+   REFRESH BUTTON
+================================= */
+
+.refresh-button {
+  border: none;
+  padding: 11px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s ease,
+              opacity 0.2s ease;
+}
+
+.refresh-button:hover {
+  transform: translateY(-1px);
+}
+
+.refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+
+/* =================================
+   RESPONSIVE
+================================= */
+
+@media (max-width: 1100px) {
+  .accuracy-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .accuracy-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .accuracy-overall-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .accuracy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .accuracy-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .accuracy-overall-value {
+    font-size: 36px;
+  }
 }
