@@ -1013,6 +1013,20 @@ const [agricultureResult, setAgricultureResult] = useState(null);
 const [travelRisk, setTravelRisk] = useState(null);
 
 /* ================================
+   FORECAST ACCURACY
+================================ */
+const [accuracyData, setAccuracyData] = useState({
+  loading: false,
+  error: "",
+  location: currentLocation,
+  metrics: { temperature: null, humidity: null, wind: null, rain: null },
+  overall: null,
+  verifiedSamples: 0,
+  leadTimeHours: 24,
+  period: null,
+});
+
+/* ================================
    ANALYTICS DATA
 ================================ */
 
@@ -1023,6 +1037,40 @@ const [analyticsData, setAnalyticsData] = useState({
   location: currentLocation,
   points: [],
 });
+
+const fetchAccuracy = async () => {
+  try {
+    setAccuracyData((prev) => ({ ...prev, loading: true, error: "", location: currentLocation }));
+
+    const response = await fetch(
+      `${API_BASE}/accuracy?city=${encodeURIComponent(currentLocation)}&days=7`
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Unable to calculate forecast accuracy.");
+    }
+
+    setAccuracyData({
+      loading: false,
+      error: "",
+      location: data.location || currentLocation,
+      metrics: data.metrics || { temperature: null, humidity: null, wind: null, rain: null },
+      overall: Number.isFinite(Number(data.overall)) ? Number(data.overall) : null,
+      verifiedSamples: Number(data.verifiedSamples) || 0,
+      leadTimeHours: Number(data.leadTimeHours) || 24,
+      period: data.period || null,
+    });
+  } catch (error) {
+    console.error("Forecast accuracy error:", error);
+    setAccuracyData((prev) => ({
+      ...prev,
+      loading: false,
+      error: error.message || "Unable to calculate forecast accuracy.",
+    }));
+  }
+};
 
 const fetchForecast = async () => {
   try {
@@ -1190,24 +1238,47 @@ const fetchFeatureData = async () => {
     console.error("Feature data fetch error:", error);
   }
 };
-const hourlyData = forecast
-  .filter((item) => {
-    const itemTime = new Date(item.time * 1000);
-    return itemTime.getTime() >= Date.now() - 60 * 1000;
-  })
-  .slice(0, 24)
-  .map((item) => ({
-    time: new Date(item.time * 1000).toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    }),
-    temp: Math.round(item.temperature),
-    icon: item.icon,
-    rain: item.rain_chance,
-    wind: Math.round(item.wind_speed * 3.6),
-    condition: item.weather,
-    timestamp: item.time,
-  }));
+/*
+ * HOURLY FORECAST TIME FIX
+ * Show the forecast from the current local hour onward.
+ * Example: at 9:22 AM -> 9:00 AM, 10:00 AM, 11:00 AM...
+ * At 10:05 AM -> 10:00 AM, 11:00 AM, 12:00 PM...
+ *
+ * The backend now returns corrected Unix timestamps for the
+ * location's local timezone, so the displayed time follows the
+ * actual forecast hour instead of drifting by a timezone offset.
+ */
+const hourlyData = (() => {
+  const now = new Date();
+  const currentHourStart = new Date(now);
+  currentHourStart.setMinutes(0, 0, 0);
+
+  return forecast
+    .filter((item) => {
+      const itemTime = new Date(Number(item.time) * 1000);
+      return (
+        Number.isFinite(itemTime.getTime()) &&
+        itemTime.getTime() >= currentHourStart.getTime()
+      );
+    })
+    .slice(0, 24)
+    .map((item) => {
+      const itemDate = new Date(Number(item.time) * 1000);
+
+      return {
+        time: itemDate.toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+        temp: Math.round(item.temperature),
+        icon: item.icon,
+        rain: item.rain_chance,
+        wind: Math.round(item.wind_speed * 3.6),
+        condition: item.weather,
+        timestamp: item.time,
+      };
+    });
+})();
 
 
   const weeklyData = [
@@ -1422,6 +1493,7 @@ const hourlyData = forecast
       title: "WEATHER INTELLIGENCE",
       items: [
         ["Weather Alerts", "⚠️"],
+        ["Forecast Accuracy", "🎯"],
         ["Risk Assessment", "🛡️"],
         ["Weather Map", "🗺️"],
         ["Locations", "📍"],
@@ -1755,6 +1827,7 @@ useEffect(() => {
       fetchWeather(),
       fetchForecast(),
       fetchFeatureData(),
+      fetchAccuracy(),
     ]);
   } finally {
     setIsRefreshing(false);
@@ -2318,6 +2391,14 @@ useEffect(() => {
         value: dashboardAlertsCount ? `${dashboardAlertsCount} Active` : "No Alerts",
         sub: dashboardAlertsCount ? "Tap to view alerts" : "Conditions look stable",
         page: "Weather Alerts",
+      },
+      {
+        title: "Forecast Accuracy",
+        description: "Verified forecast skill",
+        icon: "🎯",
+        value: accuracyData.overall !== null ? `${accuracyData.overall}%` : "--",
+        sub: accuracyData.verifiedSamples ? "24-hour lead verification" : "Collecting verified data",
+        page: "Forecast Accuracy",
       },
       {
         title: "Risk Assessment",
@@ -4554,6 +4635,9 @@ const Settings = () => {
     if (activeMenu === "Analytics") {
       fetchAnalytics(analyticsRange);
     }
+    if (activeMenu === "Forecast Accuracy") {
+      fetchAccuracy();
+    }
   }, [activeMenu, currentLocation, analyticsRange]);
 
   /* ================================
@@ -4860,6 +4944,9 @@ const Settings = () => {
 
       case "Weather Alerts":
         return WeatherAlerts();
+
+      case "Forecast Accuracy":
+        return ForecastAccuracy();
 
       case "Risk Assessment":
         return RiskAssessment();

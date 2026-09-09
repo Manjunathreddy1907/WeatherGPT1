@@ -28,6 +28,9 @@ const settingsRoutes = require("./routes/settings");
 const locationRoutes = require("./routes/location");
 const profileRoutes = require("./routes/profile");
 
+// NEW: Forecast Accuracy Route
+const accuracyRoutes = require("./routes/accuracy");
+
 /*
 =================================
 EXPRESS APP
@@ -69,6 +72,28 @@ ANALYTICS API
 // 365 days = monthly data
 
 app.use("/api/analytics", analyticsRoutes);
+
+/*
+=================================
+FORECAST ACCURACY API
+=================================
+*/
+
+// Verified forecast accuracy
+//
+// Uses:
+// Previous Model Runs API
+// +
+// Historical Weather API
+//
+// Calculates:
+// Temperature accuracy
+// Humidity accuracy
+// Wind accuracy
+// Rain event accuracy
+// Overall accuracy
+
+app.use("/api/accuracy", accuracyRoutes);
 
 /*
 =================================
@@ -186,6 +211,15 @@ app.get("/api/analytics-test", (req, res) => {
   });
 });
 
+// Accuracy test
+app.get("/api/accuracy-test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Forecast Accuracy route is registered",
+    endpoint: "/api/accuracy",
+  });
+});
+
 /*
 =================================
 FRONTEND BUILD
@@ -237,6 +271,7 @@ REACT SPA FALLBACK
 // /analytics
 // /settings
 // /profile
+// /accuracy
 //
 // to load index.html.
 
@@ -308,6 +343,10 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log("Weather: /api/weather");
   console.log("Forecast: /api/forecast");
   console.log("Analytics: /api/analytics");
+
+  // NEW
+  console.log("Accuracy: /api/accuracy");
+
   console.log("Location: /api/location");
   console.log("Profile: /api/profile");
   console.log("Settings: /api/settings");
