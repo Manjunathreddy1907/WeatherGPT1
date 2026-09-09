@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import WeatherMap from "./WeatherMap";
 
@@ -613,6 +613,8 @@ function App() {
   const [activeMenu, setActiveMenu] = useState("Dashboard");
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState("Just now");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -1833,6 +1835,103 @@ useEffect(() => {
     },
   ]);
 
+  /* ================================
+     VOICE INPUT
+  ================================= */
+
+  const toggleVoiceInput = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert(
+        "Voice input is not supported in this browser. Please use Google Chrome or Microsoft Edge."
+      );
+      return;
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    const languageMap = {
+      English: "en-IN",
+      Telugu: "te-IN",
+      Hindi: "hi-IN",
+    };
+
+    recognition.lang = languageMap[settings.language] || "en-IN";
+    recognitionRef.current = recognition;
+
+    let finalTranscript = "";
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        transcript += event.results[i][0].transcript;
+      }
+
+      if (event.results[event.results.length - 1].isFinal) {
+        finalTranscript = transcript.trim();
+      }
+
+      if (transcript.trim()) {
+        setMessage(transcript.trim());
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Voice recognition error:", event.error);
+
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        alert(
+          "Microphone permission was denied. Please allow microphone access in your browser and try again."
+        );
+      } else if (event.error === "no-speech") {
+        alert("No speech was detected. Please try speaking again.");
+      }
+
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+
+      if (finalTranscript) {
+        setMessage(finalTranscript);
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error("Unable to start voice recognition:", error);
+      setIsListening(false);
+      recognitionRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
   const sendChatMessage = async () => {
     if (!message.trim() || isTyping) return;
 
@@ -3036,8 +3135,22 @@ const Settings = () => {
             placeholder="Ask WeatherGPT..."
           />
 
-          <button className="voice-button">
-            🎤
+          <button
+            className={`voice-button ${isListening ? "listening" : ""}`}
+            onClick={toggleVoiceInput}
+            type="button"
+            title={isListening ? "Stop listening" : "Speak your question"}
+            aria-label={isListening ? "Stop voice input" : "Start voice input"}
+            style={
+              isListening
+                ? {
+                    transform: "scale(1.08)",
+                    boxShadow: "0 0 0 4px rgba(34, 197, 94, 0.18)",
+                  }
+                : undefined
+            }
+          >
+            {isListening ? "🔴" : "🎤"}
           </button>
 
           <button
