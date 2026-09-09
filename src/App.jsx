@@ -1003,6 +1003,8 @@ const [weather, setWeather] = useState({
   sunrise: "--",
   sunset: "--",
 });
+ const [weatherLoading, setWeatherLoading] = useState(true);
+ const [weatherError, setWeatherError] = useState("");
 const [forecast, setForecast] = useState([]);
 const [weeklyForecast, setWeeklyForecast] = useState([]);
 const [agricultureResult, setAgricultureResult] = useState(null);
@@ -1066,54 +1068,111 @@ const fetchForecast = async () => {
   }
 };
 const fetchWeather = async () => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
   try {
+    setWeatherLoading(true);
+    setWeatherError("");
+
     const response = await fetch(
-      `${API_BASE}/weather?city=${encodeURIComponent(currentLocation)}`
+      `${API_BASE}/weather?city=${encodeURIComponent(currentLocation)}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      }
     );
 
-    const data = await response.json();
+    const raw = await response.text();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to fetch weather");
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(
+        "Weather server returned an invalid response. Please check the deployed backend."
+      );
     }
 
-    setWeather((prev) => ({
-  ...prev,
+    if (!response.ok || data?.success === false) {
+      throw new Error(data?.error || "Failed to fetch live weather");
+    }
 
-  temperature: Math.round(data.temperature),
-  condition: data.weather,
-  feelsLike: Math.round(data.feels_like),
+    const numberOrZero = (value) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    };
 
-  high: Math.round(data.temp_max),
-  low: Math.round(data.temp_min),
+    const weatherText = data.weather || "Weather unavailable";
 
-  humidity: data.humidity,
-  pressure: data.pressure,
+    const getWeatherIcon = (text) => {
+      const value = String(text).toLowerCase();
 
-  wind: Math.round(data.wind_speed * 3.6),
-  windDirection: data.wind_direction,
+      if (value.includes("thunder") || value.includes("storm")) return "⛈️";
+      if (value.includes("snow")) return "❄️";
+      if (value.includes("heavy rain")) return "🌧️";
+      if (value.includes("rain") || value.includes("shower")) return "🌦️";
+      if (value.includes("fog") || value.includes("mist")) return "🌫️";
+      if (value.includes("overcast")) return "☁️";
+      if (value.includes("cloud")) return "⛅";
+      if (value.includes("clear") || value.includes("sun")) return "☀️";
+      return "🌤️";
+    };
 
-  cloudCover: data.cloud_cover,
-  visibility: data.visibility,
+    const formatApiTime = (unixSeconds) => {
+      const seconds = Number(unixSeconds);
+      if (!Number.isFinite(seconds) || seconds <= 0) return "--";
 
-  // Live values from the updated weather backend
-  rainChance: Math.round(data.rain_chance || 0),
-  uv: Number(data.uv_index || 0),
+      return new Date(seconds * 1000).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    };
 
-  sunrise: new Date(data.sunrise * 1000).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  }),
+    const windMps = numberOrZero(data.wind_speed);
 
-  sunset: new Date(data.sunset * 1000).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  }),
+    setWeather({
+      temperature: Math.round(numberOrZero(data.temperature)),
+      condition: weatherText,
+      icon: data.icon || getWeatherIcon(weatherText),
+      location:
+        data.city && data.state
+          ? `${data.city}, ${data.state}`
+          : data.city || currentLocation,
+      feelsLike: Math.round(numberOrZero(data.feels_like)),
+      high: Math.round(numberOrZero(data.temp_max)),
+      low: Math.round(numberOrZero(data.temp_min)),
+      humidity: Math.round(numberOrZero(data.humidity)),
+      wind: Math.round(windMps * 3.6),
+      windDirection: data.wind_direction ?? "N/A",
+      rainChance: Math.round(numberOrZero(data.rain_chance)),
+      uv: Number(numberOrZero(data.uv_index).toFixed(1)),
+      pressure: Math.round(numberOrZero(data.pressure)),
+      visibility: Number(numberOrZero(data.visibility).toFixed(1)),
+      cloudCover: Math.round(numberOrZero(data.cloud_cover)),
+      sunrise: formatApiTime(data.sunrise),
+      sunset: formatApiTime(data.sunset),
+    });
 
-  location: `${data.city}, ${data.state || "India"}`,
-}));
+    setLastUpdated(
+      `Updated ${new Date().toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      })}`
+    );
   } catch (error) {
     console.error("Weather fetch error:", error);
+
+    setWeatherError(
+      error.name === "AbortError"
+        ? "Weather request timed out. Please try again."
+        : error.message || "Unable to load live weather."
+    );
+  } finally {
+    clearTimeout(timeout);
+    setWeatherLoading(false);
   }
 };
 
@@ -1674,16 +1733,30 @@ useEffect(() => {
     }
   }, [hourlyData.length, selectedHour]);
 
+  useEffect(() => {
+    if (
+      weeklyForecast.length > 0 &&
+      selectedDay >= weeklyForecast.length
+    ) {
+      setSelectedDay(0);
+    }
+  }, [weeklyForecast.length, selectedDay]);
+
   /* ================================
      REFRESH
   ================================= */
   const handleRefresh = async () => {
   setIsRefreshing(true);
 
-  await fetchWeather();
-
-  setIsRefreshing(false);
-  setLastUpdated("Just now");
+  try {
+    await Promise.all([
+      fetchWeather(),
+      fetchForecast(),
+      fetchFeatureData(),
+    ]);
+  } finally {
+    setIsRefreshing(false);
+  }
 };
   /* ================================
      NOTIFICATION FUNCTIONS
@@ -2989,12 +3062,31 @@ const Settings = () => {
       </h1>
 
       <p className="page-description">
-        Current weather conditions for Bengaluru.
+        Current weather conditions for{" "}
+        <strong>{currentLocation}</strong>.
       </p>
+
+      {weatherError && (
+        <div className="error-card">
+          <strong>Live weather unavailable:</strong> {weatherError}
+          <button
+            className="retry-btn"
+            onClick={fetchWeather}
+            style={{ marginLeft: "12px" }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="live-weather-card">
         <div className="weather-location">
           📍 {weather.location}
+          {weatherLoading && (
+            <span style={{ marginLeft: "10px" }}>
+              • Updating...
+            </span>
+          )}
         </div>
 
         <div className="temperature-info">
@@ -3003,7 +3095,12 @@ const Settings = () => {
           </div>
 
           <div className="temperature">
-            {formatTemperature(weather.temperature, settings.temperature)}
+            {weatherLoading && weather.condition === "Loading..."
+              ? "--"
+              : formatTemperature(
+                  weather.temperature,
+                  settings.temperature
+                )}
           </div>
 
           <div>
@@ -3098,6 +3195,10 @@ const Settings = () => {
             {weather.rainChance}%
           </div>
         </div>
+      </div>
+
+      <div className="current-day">
+        {lastUpdated}
       </div>
     </div>
   );
